@@ -9,27 +9,72 @@ export type Headline = {
   publishedAt: number;
 };
 
-const FEEDS: { source: string; url: string }[] = [
-  { source: "Bitcoin Optech", url: "https://bitcoinops.org/feed.xml" },
-  { source: "Stacker News", url: "https://stacker.news/~bitcoin/rss" },
-  { source: "The Rage", url: "https://www.therage.co/rss/" },
-  { source: "TFTC", url: "https://www.tftc.io/rss.xml" },
-  { source: "The Bitcoin Manual", url: "https://thebitcoinmanual.com/feed/" },
-  { source: "Jameson Lopp", url: "https://blog.lopp.net/rss/" },
-  { source: "Delving Bitcoin", url: "https://delvingbitcoin.org/latest.rss" },
-  { source: "Bitcoin Core", url: "https://bitcoincore.org/en/rss.xml" },
+export type NewsSection = {
+  category: string;
+  blurb: string;
+  headlines: Headline[];
+};
+
+const CATEGORY_FEEDS: { category: string; blurb: string; feeds: { source: string; url: string }[] }[] = [
+  {
+    category: "Bitcoin",
+    blurb: "Bitcoin-only community desks. No CoinDesk. No ETF desks.",
+    feeds: [
+      { source: "Bitcoin Optech", url: "https://bitcoinops.org/feed.xml" },
+      { source: "Stacker News", url: "https://stacker.news/~bitcoin/rss" },
+      { source: "The Rage", url: "https://www.therage.co/rss/" },
+      { source: "TFTC", url: "https://www.tftc.io/rss.xml" },
+      { source: "The Bitcoin Manual", url: "https://thebitcoinmanual.com/feed/" },
+      { source: "Jameson Lopp", url: "https://blog.lopp.net/rss/" },
+      { source: "Delving Bitcoin", url: "https://delvingbitcoin.org/latest.rss" },
+      { source: "Bitcoin Core", url: "https://bitcoincore.org/en/rss.xml" },
+    ],
+  },
+  {
+    category: "US Economics",
+    blurb: "Policy and data from the Fed and the St. Louis Fed.",
+    feeds: [
+      { source: "Federal Reserve", url: "https://www.federalreserve.gov/feeds/press_all.xml" },
+      { source: "FRED Blog", url: "https://fredblog.stlouisfed.org/feed/" },
+    ],
+  },
+  {
+    category: "Global Economics",
+    blurb: "Central banks and development news beyond the US.",
+    feeds: [
+      { source: "Bank of England", url: "https://www.bankofengland.co.uk/rss/news" },
+      { source: "UN News", url: "https://news.un.org/feed/subscribe/en/news/topic/economic-development/feed/rss.xml" },
+    ],
+  },
+  {
+    category: "AI related news",
+    blurb: "Artificial intelligence, from lab to market.",
+    feeds: [
+      { source: "MIT Technology Review", url: "https://www.technologyreview.com/topic/artificial-intelligence/feed/" },
+      { source: "The Decoder", url: "https://www.the-decoder.com/feed/" },
+    ],
+  },
 ];
 
+const PER_CATEGORY = 8;
+const CUTOFF_DAYS = 120;
+
 function decode(value: string): string {
-  return value
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/"/g, '"')
-    .replace(/&#39;|'/g, "'")
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
+  let out = value.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
+  // Repeat until stable so double-encoded entities (e.g. &amp;apos;) fully decode.
+  for (let pass = 0; pass < 3; pass++) {
+    const next = out
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;|&#39;/g, "'")
+      .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+      .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
+      .replace(/&amp;/g, "&");
+    if (next === out) break;
+    out = next;
+  }
+  return out
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -69,7 +114,6 @@ function parseFeed(xml: string, source: string): Headline[] {
       tag(block, "updated") ||
       tag(block, "dc:date");
     if (!title || !link) continue;
-    if (/^https?:\/\/stacker\.news\/items\/\d+$/i.test(link) === false && source === "noop") continue;
     headlines.push({
       id: guid || `${source}:${title}`,
       title,
@@ -84,7 +128,7 @@ function parseFeed(xml: string, source: string): Headline[] {
 
 async function fetchFeed(source: string, url: string): Promise<Headline[]> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 8000);
+  const timer = setTimeout(() => ctrl.abort(), 20000);
   try {
     const res = await fetch(url, {
       signal: ctrl.signal,
@@ -103,22 +147,30 @@ async function fetchFeed(source: string, url: string): Promise<Headline[]> {
   }
 }
 
-export const getBitcoinHeadlines = createServerFn({ method: "GET" }).handler(
-  async (): Promise<Headline[]> => {
-    const lists = await Promise.all(FEEDS.map((feed) => fetchFeed(feed.source, feed.url)));
-    const seen = new Set<string>();
-    const cutoff = Date.now() - 1000 * 60 * 60 * 24 * 120;
-    return lists
-      .flat()
-      .filter((item) => item.publishedAt >= cutoff)
-      .sort((a, b) => b.publishedAt - a.publishedAt)
-      .filter((item) => {
-        const key = item.title.toLowerCase();
-        if (seen.has(item.id) || seen.has(key)) return false;
-        seen.add(item.id);
-        seen.add(key);
-        return true;
-      })
-      .slice(0, 18);
+function dedupeSort(headlines: Headline[]): Headline[] {
+  const seen = new Set<string>();
+  const cutoff = Date.now() - 1000 * 60 * 60 * 24 * CUTOFF_DAYS;
+  return headlines
+    .filter((item) => item.publishedAt >= cutoff)
+    .sort((a, b) => b.publishedAt - a.publishedAt)
+    .filter((item) => {
+      const key = item.title.toLowerCase();
+      if (seen.has(item.id) || seen.has(key)) return false;
+      seen.add(item.id);
+      seen.add(key);
+      return true;
+    })
+    .slice(0, PER_CATEGORY);
+}
+
+export const getNewsSections = createServerFn({ method: "GET" }).handler(
+  async (): Promise<NewsSection[]> => {
+    const sections = await Promise.all(
+      CATEGORY_FEEDS.map(async ({ category, blurb, feeds }) => {
+        const lists = await Promise.all(feeds.map((feed) => fetchFeed(feed.source, feed.url)));
+        return { category, blurb, headlines: dedupeSort(lists.flat()) };
+      }),
+    );
+    return sections;
   },
 );
