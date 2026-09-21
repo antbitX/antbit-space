@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getBitcoinHeadlines, type Headline } from "@/lib/news";
+import { getNewsSections, type NewsSection } from "@/lib/news";
 
 export function NewsFeed() {
-  const [headlines, setHeadlines] = useState<Headline[] | null>(null);
+  const [sections, setSections] = useState<NewsSection[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    getBitcoinHeadlines()
+    getNewsSections()
       .then((next) => {
-        if (!cancelled) setHeadlines(next);
+        if (!cancelled) setSections(next);
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load headlines");
@@ -23,54 +23,66 @@ export function NewsFeed() {
   return (
     <article className="rounded-xl bg-surface/90 p-6 shadow-[var(--shadow-border)] sm:p-8">
       <p className="text-sm text-muted">
-        Latest from Bitcoin-only community desks — Optech, Stacker News, The Rage, TFTC, Lopp, Delving,
-        Core, and The Bitcoin Manual. No CoinDesk. No ETF desks.
+        Four desks, side by side — Bitcoin, US economics, global economics, and AI.
       </p>
 
       {error ? <p className="mt-4 text-sm text-down">{error}</p> : null}
 
-      {!headlines && !error ? (
-        <ul className="mt-6 space-y-4">
-          {Array.from({ length: 6 }, (_, i) => (
-            <li key={i}>
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="mt-2 h-5 w-full" />
-            </li>
+      {!sections && !error ? (
+        <div className="mt-6 grid gap-8 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }, (_, c) => (
+            <div key={c} className="space-y-4">
+              <Skeleton className="h-4 w-28" />
+              {Array.from({ length: 5 }, (_, i) => (
+                <div key={i}>
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="mt-2 h-4 w-full" />
+                </div>
+              ))}
+            </div>
           ))}
-        </ul>
+        </div>
       ) : null}
 
-      {headlines && headlines.length === 0 ? (
-        <p className="mt-4 text-sm text-muted">No recent headlines from those feeds.</p>
-      ) : null}
+      {sections ? (
+        <div className="mt-6 grid gap-8 md:grid-cols-2 xl:grid-cols-4">
+          {sections.map((section) => (
+            <section key={section.category} aria-label={section.category}>
+              <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-fg">
+                {section.category}
+              </h3>
+              <p className="mt-1 text-xs leading-relaxed text-muted">{section.blurb}</p>
 
-      {headlines && headlines.length > 0 ? (
-        <ul className="mt-6 divide-y divide-border/80">
-          {headlines.map((item) => (
-            <li key={item.id} className="py-4 first:pt-0 last:pb-0">
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noreferrer"
-                className="group block space-y-1.5"
-              >
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">
-                  {item.source}
-                  <span className="mx-2 text-subtle">·</span>
-                  <time dateTime={new Date(item.publishedAt).toISOString()}>
-                    {formatRelative(item.publishedAt)}
-                  </time>
-                </p>
-                <p className="text-base text-fg transition-colors duration-150 group-hover:text-accent">
-                  {item.title}
-                </p>
-                {item.summary ? (
-                  <p className="line-clamp-2 text-sm leading-relaxed text-muted">{item.summary}</p>
-                ) : null}
-              </a>
-            </li>
+              {section.headlines.length === 0 ? (
+                <p className="mt-4 text-sm text-muted">No recent headlines in this desk.</p>
+              ) : (
+                <ul className="mt-4 divide-y divide-border/80">
+                  {section.headlines.map((item) => (
+                    <li key={item.id} className="py-3 first:pt-0 last:pb-0">
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group block space-y-1"
+                      >
+                        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+                          {item.source}
+                          <span className="mx-1.5 text-subtle">·</span>
+                          <time dateTime={new Date(item.publishedAt).toISOString()}>
+                            {formatRelative(item.publishedAt)}
+                          </time>
+                        </p>
+                        <p className="text-sm leading-snug text-fg transition-colors duration-150 group-hover:text-accent">
+                          {item.title}
+                        </p>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           ))}
-        </ul>
+        </div>
       ) : null}
     </article>
   );

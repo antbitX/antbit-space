@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { NewsFeed } from "@/components/news-feed";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { XIcon } from "@/components/x-icon";
@@ -47,12 +48,44 @@ export function AboutPanel() {
                   bitcoin only
                 </p>
                 <p className="max-w-xl text-sm leading-relaxed text-muted">
-                  Bitcoin-only desk. Watching price, issuance, and the node split —
-                  Core, Knots, and RDTS (BIP-110).
+                  Bitcoin-only desk. Watching price and issuance.
                 </p>
               </div>
             </div>
           </article>
+
+          <div className="mt-6 rounded-xl bg-surface/90 p-6 shadow-[var(--shadow-border)] sm:p-8">
+            <div className="flex items-center gap-2">
+              <XIcon className="size-4 text-muted" />
+              <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-fg">
+                Recent on X
+              </h2>
+            </div>
+            <div className="mt-4 overflow-hidden rounded-lg">
+              <XTimeline />
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-muted">
+              Live from{" "}
+              <a
+                href="https://x.com/antbit"
+                target="_blank"
+                rel="noreferrer"
+                className="text-accent hover:underline"
+              >
+                @antbit
+              </a>
+              . If posts don&apos;t render here, X is blocking the embed —{" "}
+              <a
+                href="https://x.com/antbit"
+                target="_blank"
+                rel="noreferrer"
+                className="text-accent hover:underline"
+              >
+                read them on the profile
+              </a>
+              .
+            </p>
+          </div>
         </TabsContent>
 
         <TabsContent value="news">
@@ -60,5 +93,31 @@ export function AboutPanel() {
         </TabsContent>
       </Tabs>
     </section>
+  );
+}
+
+function XTimeline() {
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://platform.twitter.com/widgets.js";
+    script.async = true;
+    script.charset = "utf-8";
+    document.body.appendChild(script);
+    return () => {
+      if (document.body.contains(script)) document.body.removeChild(script);
+    };
+  }, []);
+
+  return (
+    <a
+      className="twitter-timeline"
+      data-dnt="true"
+      data-theme="dark"
+      data-chrome="noheader nofooter noborders transparent"
+      data-tweet-limit="5"
+      href="https://x.com/antbit?ref_src=twsrc%5Etfw"
+    >
+      Recent posts by @antbit on X
+    </a>
   );
 }
