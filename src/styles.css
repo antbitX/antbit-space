@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -18,9 +18,9 @@
   --color-down: #ef5b5b;
   --color-ring: #3db4ff;
 
-  --font-display: "Cinzel", "Times New Roman", serif;
+  --font-display: "Archivo", "DM Sans", system-ui, sans-serif;
   --font-sans: "DM Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-mono: "DM Sans", system-ui, sans-serif;
 
   --radius-xs: 4px;
   --radius-sm: 8px;
