@@ -56,6 +56,11 @@ export const Route = createRootRoute({
   component: () => (
     <html lang="en" className="antialiased dark" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("antbit-theme");if(t!=="dark"&&t!=="light"){t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";}document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;}catch(e){document.documentElement.dataset.theme="dark";}})();`,
+          }}
+        />
         <HeadContent />
       </head>
       <body className="bg-bg text-fg">

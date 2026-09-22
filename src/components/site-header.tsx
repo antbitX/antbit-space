@@ -1,3 +1,5 @@
+import { ThemeToggle } from "@/components/theme";
+
 const NAV = [
   { href: "#about", label: "About" },
   { href: "#markets", label: "Markets" },
@@ -33,6 +35,8 @@ export function SiteHeader() {
             </a>
           ))}
         </nav>
+
+        <ThemeToggle />
       </div>
     </header>
   );

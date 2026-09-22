@@ -32,6 +32,33 @@
   --shadow-border-hover: 0 0 0 1px rgba(61, 180, 255, 0.35);
 }
 
+/* Light mode: same tokens, warm paper palette. */
+[data-theme="light"] {
+  --color-bg: #f4f1ea;
+  --color-surface: #ffffff;
+  --color-surface-2: #e9e5d8;
+  --color-fg: #1c1a15;
+  --color-muted: #6e685b;
+  --color-subtle: #a39c8b;
+  --color-accent: #0f6fdd;
+  --color-accent-deep: #0b54a6;
+  --color-tab: #0f6fdd;
+  --color-tab-fg: #ffffff;
+  --color-coin: #9a7a3a;
+  --color-border: #ddd8c7;
+  --color-up: #0d7a45;
+  --color-down: #cf3d3d;
+  --color-ring: #0f6fdd;
+
+  --shadow-border: 0 0 0 1px rgba(28, 26, 21, 0.1);
+  --shadow-border-hover: 0 0 0 1px rgba(15, 111, 221, 0.4);
+}
+
+/* The photographic banner is a dark-mode treatment; hide it in light mode. */
+[data-theme="light"] .theme-banner {
+  display: none;
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;

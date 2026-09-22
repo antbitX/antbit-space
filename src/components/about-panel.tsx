@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { NewsFeed } from "@/components/news-feed";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTheme } from "@/components/theme";
 import { XIcon } from "@/components/x-icon";
 
 export function AboutPanel() {
+  const { theme } = useTheme();
   return (
     <section id="about" className="scroll-mt-24">
       <Tabs defaultValue="profile">
@@ -62,7 +64,7 @@ export function AboutPanel() {
               </h2>
             </div>
             <div className="mt-4 overflow-hidden rounded-lg">
-              <XTimeline />
+              <XTimeline key={theme} theme={theme} />
             </div>
           </div>
         </TabsContent>
@@ -75,7 +77,7 @@ export function AboutPanel() {
   );
 }
 
-function XTimeline() {
+function XTimeline({ theme }: { theme: "dark" | "light" }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
 
@@ -159,7 +161,7 @@ function XTimeline() {
       <a
         className="twitter-timeline"
         data-dnt="true"
-        data-theme="dark"
+        data-theme={theme}
         data-chrome="noheader nofooter noborders transparent"
         data-tweet-limit="5"
         href="https://x.com/antbit?ref_src=twsrc%5Etfw"

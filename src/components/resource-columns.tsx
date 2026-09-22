@@ -1,4 +1,4 @@
-import { ArrowUpRight, Cpu, LayoutDashboard, Wallet } from "lucide-react";
+import { ArrowUpRight, Cpu, FileText, LayoutDashboard, Wallet, Waves } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const RESOURCES = [
@@ -22,6 +22,20 @@ const RESOURCES = [
     blurb: "The Bitcoin dashboard this desk reads for network truth.",
     href: "https://bitcoin.clarkmoody.com/dashboard/",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Mempool",
+    name: "mempool.space",
+    blurb: "Live mempool, blocks, and fee estimates.",
+    href: "https://mempool.space/",
+    icon: Waves,
+  },
+  {
+    title: "Foundations",
+    name: "Bitcoin Whitepaper",
+    blurb: "Satoshi's 2008 paper. Nine pages that started everything.",
+    href: "https://bitcoin.org/bitcoin.pdf",
+    icon: FileText,
   },
 ];
 

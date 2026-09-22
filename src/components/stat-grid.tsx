@@ -18,9 +18,9 @@ export function StatGrid({ snapshot }: { snapshot: BitcoinSnapshot | null }) {
     <section id="network" className="scroll-mt-24 space-y-4">
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Network</p>
-        <h2 className="mt-1 font-display text-2xl text-fg">Six live Bitcoin stats</h2>
+        <h2 className="mt-1 font-display text-2xl text-fg">Live Bitcoin stats</h2>
         <p className="mt-1 text-sm text-muted">
-          Same metrics Clark Moody tracks — price, issuance, cap, ATH, nodes, difficulty.
+          Price, issuance, cap, ATH, nodes, difficulty.
         </p>
       </div>
 
@@ -31,6 +31,7 @@ export function StatGrid({ snapshot }: { snapshot: BitcoinSnapshot | null }) {
         <AthCard snapshot={snapshot} />
         <NodesCard snapshot={snapshot} />
         <DifficultyCard snapshot={snapshot} />
+        <HalvingCard snapshot={snapshot} />
       </div>
     </section>
   );
@@ -254,5 +255,129 @@ function DifficultyCard({ snapshot }: { snapshot: BitcoinSnapshot | null }) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+const HALVING_INTERVAL = 210_000;
+const LAST_HALVING_BLOCK = 840_000;
+const NEXT_HALVING_BLOCK = LAST_HALVING_BLOCK + HALVING_INTERVAL;
+const AVG_BLOCK_SECONDS = 600;
+
+function formatBlockCompact(block: number): string {
+  if (block >= 1_000_000) return `${(block / 1_000_000).toFixed(2)}M`;
+  const k = block / 1_000;
+  return `${Number.isInteger(k) ? k.toFixed(0) : k.toFixed(1)}k`;
+}
+
+function HalvingCard({ snapshot }: { snapshot: BitcoinSnapshot | null }) {
+  return (
+    <Card className="bg-surface/90 sm:col-span-2 xl:col-span-3">
+      <CardHeader>
+        <CardTitle>7 · Next halving</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {snapshot ? (
+          <HalvingBody height={snapshot.blockHeight} />
+        ) : (
+          <Skeleton className="h-36 w-full" />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function HalvingBody({ height }: { height: number }) {
+  const blocksLeft = Math.max(0, NEXT_HALVING_BLOCK - height);
+  const elapsed = Math.min(Math.max(height - LAST_HALVING_BLOCK, 0), HALVING_INTERVAL);
+  const progress = elapsed / HALVING_INTERVAL;
+  const daysLeft = Math.round((blocksLeft * AVG_BLOCK_SECONDS) / 86_400);
+  const etaLabel = new Date(Date.now() + blocksLeft * AVG_BLOCK_SECONDS * 1000).toLocaleDateString(
+    "en-US",
+    { month: "short", year: "numeric" },
+  );
+
+  return (
+    <div className="grid items-center gap-6 md:grid-cols-[15rem_1fr]">
+      <div>
+        <p className="font-mono text-3xl tabular-nums text-fg">{formatNumber(blocksLeft, 0)}</p>
+        <p className="mt-1 text-sm text-muted">blocks to go</p>
+        <p className="mt-3 font-mono text-sm tabular-nums text-fg">
+          ~{formatNumber(daysLeft, 0)} days
+        </p>
+        <p className="mt-1 text-sm text-muted">est. {etaLabel}</p>
+        <p className="mt-4 text-sm text-muted">
+          Reward <span className="font-mono tabular-nums text-fg">3.125</span> →{" "}
+          <span className="font-mono tabular-nums text-fg">1.5625</span> BTC
+        </p>
+      </div>
+      <HalvingChart height={height} progress={progress} etaLabel={etaLabel} />
+    </div>
+  );
+}
+
+function HalvingChart({
+  height,
+  progress,
+  etaLabel,
+}: {
+  height: number;
+  progress: number;
+  etaLabel: string;
+}) {
+  const W = 640;
+  const H = 148;
+  const x0 = 30;
+  const x1 = W - 30;
+  const y = 66;
+  const cx = x0 + progress * (x1 - x0);
+  const labelX = Math.min(Math.max(cx, x0 + 44), x1 - 44);
+  const ticks = [0, 0.25, 0.5, 0.75, 1];
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="h-auto w-full"
+      role="img"
+      aria-label={`Halving epoch progress: block ${height} of ${NEXT_HALVING_BLOCK}`}
+      style={{ fontFamily: "inherit" }}
+    >
+      {/* reward labels */}
+      <text x={x0} y={24} fontSize={12} fill="var(--color-muted)">
+        3.125 BTC / block
+      </text>
+      <text x={x1} y={24} fontSize={12} fill="var(--color-muted)" textAnchor="end">
+        1.5625 BTC / block
+      </text>
+
+      {/* track */}
+      <rect x={x0} y={y - 5} width={x1 - x0} height={10} rx={5} fill="var(--color-surface-2)" />
+      <rect x={x0} y={y - 5} width={Math.max(0, cx - x0)} height={10} rx={5} fill="var(--color-accent)" />
+
+      {/* quarter ticks */}
+      {ticks.map((f) => {
+        const tx = x0 + f * (x1 - x0);
+        const block = LAST_HALVING_BLOCK + f * HALVING_INTERVAL;
+        return (
+          <g key={f}>
+            <line x1={tx} y1={y - 9} x2={tx} y2={y + 9} stroke="var(--color-subtle)" strokeWidth={1.5} />
+            <text x={tx} y={y + 28} fontSize={11} fill="var(--color-muted)" textAnchor="middle">
+              {formatBlockCompact(block)}
+            </text>
+          </g>
+        );
+      })}
+      <text x={x0} y={y + 46} fontSize={11} fill="var(--color-subtle)" textAnchor="start">
+        Apr 2024
+      </text>
+      <text x={x1} y={y + 46} fontSize={11} fill="var(--color-subtle)" textAnchor="end">
+        est. {etaLabel}
+      </text>
+
+      {/* current position */}
+      <circle cx={cx} cy={y} r={8} fill="var(--color-bg)" stroke="var(--color-accent)" strokeWidth={3} />
+      <text x={labelX} y={y - 16} fontSize={12} fontWeight={600} fill="var(--color-fg)" textAnchor="middle">
+        {formatNumber(height, 0)}
+      </text>
+    </svg>
   );
 }
