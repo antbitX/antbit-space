@@ -54,9 +54,13 @@
   --shadow-border-hover: 0 0 0 1px rgba(15, 111, 221, 0.4);
 }
 
-/* The photographic banner is a dark-mode treatment; hide it in light mode. */
-[data-theme="light"] .theme-banner {
-  display: none;
+/* The photographic banner swaps variants per theme: dark artwork in dark
+   mode, the light-daylight variant in light mode. */
+.theme-banner-photo {
+  background-image: url("/banner.jpg");
+}
+[data-theme="light"] .theme-banner-photo {
+  background-image: url("/banner-light.jpg");
 }
 
 @layer base {

@@ -46,7 +46,7 @@ export function InstallPanel() {
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Phone</p>
         <h2 className="mt-1 font-display text-2xl text-fg">Add to Home Screen</h2>
-        <p className="mt-1 text-sm text-muted">Install the desk as an app. No browser chrome, coin icon on the grid.</p>
+        <p className="mt-1 text-sm text-muted">Install the desk as an app.</p>
       </div>
 
       <Card className="bg-surface/90 md:max-w-xl">
