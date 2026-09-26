@@ -53,13 +53,13 @@ export function StoresOfValue() {
         Stores of value
       </h2>
       <p className="mt-1 text-sm text-muted">
-        Gold, silver, platinum and crude, next to your bitcoin — 7-day view.
+        Gold, silver, platinum and crude, next to your bitcoin.
       </p>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <div className="mt-4 flex snap-x gap-3 overflow-x-auto pb-1 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-4">
         {!rows
           ? Array.from({ length: 4 }, (_, i) => (
-              <div key={i} className="rounded-xl bg-surface/90 p-4 shadow-[var(--shadow-border)]">
+              <div key={i} className="min-w-[230px] snap-start rounded-xl bg-surface/90 p-4 shadow-[var(--shadow-border)] md:min-w-0">
                 <Skeleton className="h-4 w-16" />
                 <Skeleton className="mt-3 h-7 w-28" />
                 <Skeleton className="mt-3 h-16 w-full" />
@@ -71,7 +71,7 @@ export function StoresOfValue() {
               return (
                 <div
                   key={row.symbol}
-                  className="rounded-xl bg-surface/90 p-4 shadow-[var(--shadow-border)]"
+                  className="min-w-[230px] snap-start rounded-xl bg-surface/90 p-4 shadow-[var(--shadow-border)] md:min-w-0"
                 >
                   <div className="flex items-baseline justify-between gap-2">
                     <h3 className="font-display text-sm font-bold text-fg">{row.name}</h3>

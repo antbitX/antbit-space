@@ -1,9 +1,11 @@
 import { AboutPanel } from "@/components/about-panel";
 import { InstallPanel } from "@/components/install-panel";
 import { MarketSection } from "@/components/market-section";
+import { MobileNewsPreview } from "@/components/mobile-news-preview";
 import { ResourceColumns } from "@/components/resource-columns";
 import { SiteShell } from "@/components/site-shell";
 import { StatGrid } from "@/components/stat-grid";
+import { StoresOfValue } from "@/components/stores-of-value";
 import { getBitcoinSnapshot, type BitcoinSnapshot } from "@/lib/bitcoin";
 import { useEffect, useState } from "react";
 
@@ -41,16 +43,39 @@ export function Dashboard({ initial }: { initial: BitcoinSnapshot | null }) {
 
   return (
     <SiteShell>
-      <AboutPanel />
-      {error && !snapshot ? (
-        <p className="rounded-lg bg-surface px-4 py-3 text-sm text-down shadow-[var(--shadow-border)]">
-          {error}
-        </p>
-      ) : null}
-      <MarketSection snapshot={snapshot} />
-      <StatGrid snapshot={snapshot} />
-      <InstallPanel />
-      <ResourceColumns />
+      {/*
+        Mobile gets a reorganized, app-like flow: price hero first, stores of
+        value as a swipe row, compact install, headline preview — then the
+        rest. Desktop keeps the original DOM order (About → Markets →
+        Stats → Install → Resources); `md:order-none` resets the mobile
+        ordering above the md breakpoint.
+      */}
+      <div className="order-6 md:order-none">
+        <AboutPanel />
+      </div>
+      <div className="order-1 md:order-none">
+        <MarketSection snapshot={snapshot} />
+        {error && !snapshot ? (
+          <p className="mt-4 rounded-lg bg-surface px-4 py-3 text-sm text-down shadow-[var(--shadow-border)]">
+            {error}
+          </p>
+        ) : null}
+      </div>
+      <div className="order-2 md:hidden">
+        <StoresOfValue />
+      </div>
+      <div className="order-5 md:order-none">
+        <StatGrid snapshot={snapshot} />
+      </div>
+      <div className="order-3 md:order-none">
+        <InstallPanel />
+      </div>
+      <div className="order-4 md:hidden">
+        <MobileNewsPreview />
+      </div>
+      <div className="order-7 md:order-none">
+        <ResourceColumns />
+      </div>
     </SiteShell>
   );
 }

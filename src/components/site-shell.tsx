@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { MobileTabBar } from "@/components/mobile-tab-bar";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme";
@@ -23,10 +24,11 @@ export function SiteShell({ children }: { children: ReactNode }) {
 
         <div className="relative">
           <SiteHeader />
-          <main className="mx-auto flex max-w-6xl flex-col gap-12 px-4 py-8 sm:px-6 sm:py-12">
+          <main className="mx-auto flex max-w-6xl flex-col gap-12 px-4 py-8 max-md:pb-28 sm:px-6 sm:py-12">
             {children}
           </main>
           <SiteFooter />
+          <MobileTabBar />
         </div>
       </div>
     </ThemeProvider>

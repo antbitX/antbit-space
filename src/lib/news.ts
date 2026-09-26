@@ -58,6 +58,121 @@ const CATEGORY_FEEDS: { category: string; blurb: string; feeds: { source: string
 
 const PER_CATEGORY = 8;
 const CUTOFF_DAYS = 120;
+// How many items each feed contributes to the ranking pool (more than we show,
+// so the ranker has real choices).
+const PER_FEED_POOL = 12;
+
+// ---------------------------------------------------------------------------
+// Relevance ranking: surface substantive, desk-relevant stories and push
+// clickbait down. Scores are heuristic and documented here so the trade-offs
+// stay visible: substance keywords and trusted primary sources rank up;
+// listicle/curiosity-gap patterns, shouting, and hype punctuation rank down.
+// Freshness still gets a nudge, and recency breaks ties.
+// ---------------------------------------------------------------------------
+
+const CLICKBAIT_PATTERNS: RegExp[] = [
+  /\byou won'?t believe\b/i,
+  /\bshocking\b/i,
+  /\bmind[- ]blowing\b/i,
+  /\bthis is why\b/i,
+  /\bwhat happens next\b/i,
+  /\bthe truth about\b/i,
+  /\bnobody (is|was) talking about\b/i,
+  /\beveryone is (wrong|missing)\b/i,
+  /\b\d+\s+(reasons|ways|things|secrets|tricks|lessons)\b/i,
+  /\bgone (wrong|viral)\b/i,
+  /\bdo this (now|before)\b/i,
+  /\blast chance\b/i,
+];
+
+const SUBSTANCE_KEYWORDS: Record<string, string[]> = {
+  Bitcoin: [
+    "etf", "hashrate", "halving", "lightning", "taproot", "mempool",
+    "difficulty", "mining", "custody", "treasury", "adoption", "protocol",
+    "upgrade", "ordinals", "ecash",
+  ],
+  "US Economics": [
+    "fed", "fomc", "powell", "cpi", "inflation", "gdp", "unemployment",
+    "rate cut", "rate hike", "payrolls", "pce", "deficit", "treasury",
+  ],
+  "Global Economics": [
+    "ecb", "bank of england", "bank of japan", "imf", "world bank",
+    "inflation", "gdp", "tariff", "trade", "central bank", "recession",
+  ],
+  "AI related news": [
+    "model", "llm", "openai", "anthropic", "deepmind", "nvidia", "chip",
+    "agent", "reasoning", "benchmark", "open source", "transformer",
+  ],
+};
+
+// Primary/official sources: factual by construction, worth a small boost.
+const TRUSTED_SOURCES = new Set([
+  "Federal Reserve",
+  "FRED Blog",
+  "Bank of England",
+  "Bitcoin Core",
+  "Bitcoin Optech",
+  "Delving Bitcoin",
+  "MIT Technology Review",
+]);
+
+/** Exported for testing/tuning the ranking heuristics. */
+export function scoreHeadline(item: Headline, category: string): number {
+  const title = item.title;
+  const text = `${title} ${item.summary}`.toLowerCase();
+  let score = 0;
+
+  // Substance: concrete topics the desk cares about (capped so one
+  // keyword-stuffed headline can't run away with it).
+  const keywords = SUBSTANCE_KEYWORDS[category] ?? [];
+  let hits = 0;
+  for (const kw of keywords) {
+    if (text.includes(kw)) {
+      hits++;
+      if (hits >= 5) break;
+    }
+  }
+  score += hits * 2;
+
+  if (TRUSTED_SOURCES.has(item.source)) score += 2;
+
+  // Clickbait patterns get pushed down hard.
+  for (const pattern of CLICKBAIT_PATTERNS) {
+    if (pattern.test(title)) score -= 4;
+  }
+
+  // Shouting, hype punctuation, and question-bait headlines.
+  const words = title.split(/\s+/).filter(Boolean);
+  const shouty = words.filter((w) => w.length > 3 && w === w.toUpperCase()).length;
+  if (words.length > 0 && shouty / words.length > 0.4) score -= 3;
+  const bangs = (title.match(/!/g) ?? []).length;
+  if (bangs > 1) score -= 2;
+  if (title.trim().endsWith("?")) score -= 1;
+
+  // Freshness nudge; recency breaks ties in the final sort.
+  const ageHours = (Date.now() - item.publishedAt) / 3_600_000;
+  if (ageHours < 24) score += 2;
+  else if (ageHours < 72) score += 1;
+
+  return score;
+}
+
+function rankHeadlines(category: string, headlines: Headline[]): Headline[] {
+  const seen = new Set<string>();
+  const cutoff = Date.now() - 1000 * 60 * 60 * 24 * CUTOFF_DAYS;
+  const scored = headlines
+    .filter((item) => item.publishedAt >= cutoff)
+    .filter((item) => {
+      const key = item.title.toLowerCase();
+      if (seen.has(item.id) || seen.has(key)) return false;
+      seen.add(item.id);
+      seen.add(key);
+      return true;
+    })
+    .map((item) => ({ item, score: scoreHeadline(item, category) }));
+  scored.sort((a, b) => b.score - a.score || b.item.publishedAt - a.item.publishedAt);
+  return scored.slice(0, PER_CATEGORY).map((s) => s.item);
+}
 
 function decode(value: string): string {
   let out = value.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
@@ -100,7 +215,7 @@ function parseDate(value: string): number {
 function parseFeed(xml: string, source: string): Headline[] {
   const blocks = xml.match(/<item[\s\S]*?<\/item>/gi) ?? xml.match(/<entry[\s\S]*?<\/entry>/gi) ?? [];
   const headlines: Headline[] = [];
-  for (const block of blocks.slice(0, 8)) {
+  for (const block of blocks.slice(0, PER_FEED_POOL)) {
     const title = tag(block, "title");
     const link =
       tag(block, "link") ||
@@ -147,28 +262,12 @@ async function fetchFeed(source: string, url: string): Promise<Headline[]> {
   }
 }
 
-function dedupeSort(headlines: Headline[]): Headline[] {
-  const seen = new Set<string>();
-  const cutoff = Date.now() - 1000 * 60 * 60 * 24 * CUTOFF_DAYS;
-  return headlines
-    .filter((item) => item.publishedAt >= cutoff)
-    .sort((a, b) => b.publishedAt - a.publishedAt)
-    .filter((item) => {
-      const key = item.title.toLowerCase();
-      if (seen.has(item.id) || seen.has(key)) return false;
-      seen.add(item.id);
-      seen.add(key);
-      return true;
-    })
-    .slice(0, PER_CATEGORY);
-}
-
 export const getNewsSections = createServerFn({ method: "GET" }).handler(
   async (): Promise<NewsSection[]> => {
     const sections = await Promise.all(
       CATEGORY_FEEDS.map(async ({ category, blurb, feeds }) => {
         const lists = await Promise.all(feeds.map((feed) => fetchFeed(feed.source, feed.url)));
-        return { category, blurb, headlines: dedupeSort(lists.flat()) };
+        return { category, blurb, headlines: rankHeadlines(category, lists.flat()) };
       }),
     );
     return sections;

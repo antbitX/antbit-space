@@ -48,10 +48,10 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-1">
           <nav className="hidden items-center gap-1 md:flex" aria-label="Sections">
+            <NavLink href={NEWS_NAV.href} label={NEWS_NAV.label} active={onNews} />
             {SECTION_NAV.map((item) => (
               <NavLink key={item.href} href={item.href} label={item.label} />
             ))}
-            <NavLink href={NEWS_NAV.href} label={NEWS_NAV.label} active={onNews} />
           </nav>
 
           <ThemeToggle />
@@ -63,6 +63,12 @@ export function SiteHeader() {
         aria-label="Sections"
       >
         <div className="mx-auto flex max-w-6xl items-center gap-1 px-4">
+          <NavLink
+            href={NEWS_NAV.href}
+            label={NEWS_NAV.label}
+            active={onNews}
+            className="h-10 shrink-0 px-2"
+          />
           {SECTION_NAV.map((item) => (
             <NavLink
               key={item.href}
@@ -71,12 +77,6 @@ export function SiteHeader() {
               className="h-10 shrink-0 px-2"
             />
           ))}
-          <NavLink
-            href={NEWS_NAV.href}
-            label={NEWS_NAV.label}
-            active={onNews}
-            className="h-10 shrink-0 px-2"
-          />
         </div>
       </nav>
     </header>
