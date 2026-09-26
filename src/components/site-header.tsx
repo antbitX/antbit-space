@@ -42,26 +42,20 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-border/80 bg-bg/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <a href="/#about" className="flex items-center gap-2.5 text-fg">
-          <img
-            src="/avatar.jpg"
-            alt=""
-            className="size-8 rounded-full object-cover outline outline-1 -outline-offset-1 outline-coin/40"
-            onError={(event) => {
-              event.currentTarget.src = "/avatar.svg";
-            }}
-          />
-          <span className="font-display text-sm tracking-[0.18em] uppercase">antbit</span>
+        <a href="/#about" className="shrink-0 font-display text-lg font-extrabold tracking-tight text-fg">
+          antbit <span className="text-coin">desk</span>
         </a>
 
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Sections">
-          {SECTION_NAV.map((item) => (
-            <NavLink key={item.href} href={item.href} label={item.label} />
-          ))}
-          <NavLink href={NEWS_NAV.href} label={NEWS_NAV.label} active={onNews} />
-        </nav>
+        <div className="flex items-center gap-1">
+          <nav className="hidden items-center gap-1 md:flex" aria-label="Sections">
+            {SECTION_NAV.map((item) => (
+              <NavLink key={item.href} href={item.href} label={item.label} />
+            ))}
+            <NavLink href={NEWS_NAV.href} label={NEWS_NAV.label} active={onNews} />
+          </nav>
 
-        <ThemeToggle />
+          <ThemeToggle />
+        </div>
       </div>
 
       <nav

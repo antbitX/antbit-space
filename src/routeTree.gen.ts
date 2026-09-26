@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as NewsRouteImport } from './routes/news'
+import { Route as ApiWeeklyBriefRouteImport } from './routes/api/weekly-brief'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const NewsRoute = NewsRouteImport.update({
   path: '/news',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWeeklyBriefRoute = ApiWeeklyBriefRouteImport.update({
+  id: '/api/weekly-brief',
+  path: '/api/weekly-brief',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -32,30 +38,34 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/news': typeof NewsRoute
+  '/api/weekly-brief': typeof ApiWeeklyBriefRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/news': typeof NewsRoute
+  '/api/weekly-brief': typeof ApiWeeklyBriefRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/news': typeof NewsRoute
+  '/api/weekly-brief': typeof ApiWeeklyBriefRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/news' | '/api/auth/$'
+  fullPaths: '/' | '/news' | '/api/weekly-brief' | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/news' | '/api/auth/$'
-  id: '__root__' | '/' | '/news' | '/api/auth/$'
+  to: '/' | '/news' | '/api/weekly-brief' | '/api/auth/$'
+  id: '__root__' | '/' | '/news' | '/api/weekly-brief' | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   NewsRoute: typeof NewsRoute
+  ApiWeeklyBriefRoute: typeof ApiWeeklyBriefRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/weekly-brief': {
+      id: '/api/weekly-brief'
+      path: '/api/weekly-brief'
+      fullPath: '/api/weekly-brief'
+      preLoaderRoute: typeof ApiWeeklyBriefRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   NewsRoute: NewsRoute,
+  ApiWeeklyBriefRoute: ApiWeeklyBriefRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

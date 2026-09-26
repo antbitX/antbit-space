@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getNewsSections, type NewsSection } from "@/lib/news";
 
+const SECTION_ART: Record<string, string> = {
+  Bitcoin: "/news/bitcoin.webp",
+  "US Economics": "/news/us-economics.webp",
+  "Global Economics": "/news/global-economics.webp",
+  "AI related news": "/news/ai.webp",
+};
+
 export function NewsFeed() {
   const [sections, setSections] = useState<NewsSection[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +55,15 @@ export function NewsFeed() {
         <div className="mt-6 grid gap-8 md:grid-cols-2 xl:grid-cols-4">
           {sections.map((section) => (
             <section key={section.category} aria-label={section.category}>
-              <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-fg">
+              {SECTION_ART[section.category] ? (
+                <img
+                  src={SECTION_ART[section.category]}
+                  alt=""
+                  loading="lazy"
+                  className="h-28 w-full rounded-lg object-cover"
+                />
+              ) : null}
+              <h3 className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-fg">
                 {section.category}
               </h3>
               <p className="mt-1 text-xs leading-relaxed text-muted">{section.blurb}</p>
@@ -63,18 +78,28 @@ export function NewsFeed() {
                         href={item.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="group block space-y-1"
+                        className="group flex items-center gap-3"
                       >
-                        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
-                          {item.source}
-                          <span className="mx-1.5 text-subtle">·</span>
-                          <time dateTime={new Date(item.publishedAt).toISOString()}>
-                            {formatRelative(item.publishedAt)}
-                          </time>
-                        </p>
-                        <p className="text-sm leading-snug text-fg transition-colors duration-150 group-hover:text-accent">
-                          {item.title}
-                        </p>
+                        {SECTION_ART[section.category] ? (
+                          <img
+                            src={SECTION_ART[section.category]}
+                            alt=""
+                            loading="lazy"
+                            className="size-14 shrink-0 rounded-lg object-cover"
+                          />
+                        ) : null}
+                        <span className="block space-y-1">
+                          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+                            {item.source}
+                            <span className="mx-1.5 text-subtle">·</span>
+                            <time dateTime={new Date(item.publishedAt).toISOString()}>
+                              {formatRelative(item.publishedAt)}
+                            </time>
+                          </p>
+                          <p className="text-sm leading-snug text-fg transition-colors duration-150 group-hover:text-accent">
+                            {item.title}
+                          </p>
+                        </span>
                       </a>
                     </li>
                   ))}
