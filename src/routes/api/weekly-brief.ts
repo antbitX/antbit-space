@@ -46,6 +46,9 @@ export const Route = createFileRoute("/api/weekly-brief")({
           headers: {
             Authorization: `Token ${apiKey}`,
             "Content-Type": "application/json",
+            // One-time confirmation Buttondown requires per API key before
+            // it will send anything with status "about_to_send".
+            "X-Buttondown-Live-Dangerously": "true",
           },
           body: JSON.stringify({ subject, body: html, status: "about_to_send" }),
         });
