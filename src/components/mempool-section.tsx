@@ -51,23 +51,37 @@ class MempoolErrorBoundary extends Component<{ children: ReactNode }, { failed: 
 
 type Tile = { vsize: number; feeRate: number; title: string };
 
-// Fee-rate → color, log-scaled across the visible tiles. Stops follow the
-// site palette: deep blue (low) → accent (mid) → coin gold → red (high).
-const COLOR_STOPS: Array<[number, [number, number, number]]> = [
-  [0, [36, 70, 138]],
-  [0.38, [61, 180, 255]],
-  [0.68, [196, 164, 106]],
-  [1, [239, 91, 91]],
-];
+// Fee-rate → color, log-scaled across the visible tiles. Two schemes:
+// "ember" follows the site palette (deep blue → accent → coin gold → red),
+// "neon" is a bitfeed-inspired heat ramp (indigo → cyan → mint → amber → red).
+type PaletteId = "ember" | "neon";
+type ColorStops = Array<[number, [number, number, number]]>;
+const PALETTES: Record<PaletteId, ColorStops> = {
+  ember: [
+    [0, [36, 70, 138]],
+    [0.38, [61, 180, 255]],
+    [0.68, [196, 164, 106]],
+    [1, [239, 91, 91]],
+  ],
+  neon: [
+    [0, [30, 27, 120]],
+    [0.3, [34, 211, 238]],
+    [0.55, [52, 211, 153]],
+    [0.78, [251, 191, 36]],
+    [1, [248, 113, 113]],
+  ],
+};
+const PALETTE_LABELS: Record<PaletteId, string> = { ember: "Ember", neon: "Neon" };
+const PALETTE_IDS = Object.keys(PALETTES) as PaletteId[];
 
-function stopsColor(t: number): string {
+function stopsColor(t: number, stops: ColorStops): string {
   const clamped = Math.min(1, Math.max(0, t));
-  let a = COLOR_STOPS[0]!;
-  let b = COLOR_STOPS[COLOR_STOPS.length - 1]!;
-  for (let i = 0; i < COLOR_STOPS.length - 1; i++) {
-    if (clamped >= COLOR_STOPS[i]![0] && clamped <= COLOR_STOPS[i + 1]![0]) {
-      a = COLOR_STOPS[i]!;
-      b = COLOR_STOPS[i + 1]!;
+  let a = stops[0]!;
+  let b = stops[stops.length - 1]!;
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (clamped >= stops[i]![0] && clamped <= stops[i + 1]![0]) {
+      a = stops[i]!;
+      b = stops[i + 1]!;
       break;
     }
   }
@@ -78,6 +92,12 @@ function stopsColor(t: number): string {
   return `#${hex(rgb[0]!)}${hex(rgb[1]!)}${hex(rgb[2]!)}`;
 }
 
+/** CSS gradient bar sampled from a palette, for legends. */
+function stopsGradient(stops: ColorStops): string {
+  const cols = Array.from({ length: 7 }, (_, i) => stopsColor(i / 6, stops));
+  return `linear-gradient(90deg, ${cols.join(", ")})`;
+}
+
 function rateToT(rate: number, min: number, max: number): number {
   const lo = Math.log10(Math.max(min, 0.01));
   const hi = Math.log10(Math.max(max, 0.02));
@@ -85,8 +105,8 @@ function rateToT(rate: number, min: number, max: number): number {
   return Math.min(1, Math.max(0, raw));
 }
 
-function feeColor(rate: number, min: number, max: number): string {
-  return stopsColor(rateToT(rate, min, max));
+function feeColor(rate: number, min: number, max: number, stops: ColorStops = PALETTES.ember): string {
+  return stopsColor(rateToT(rate, min, max), stops);
 }
 
 /**
@@ -97,10 +117,12 @@ function Mosaic({
   tiles,
   cycle,
   label,
+  stops = PALETTES.ember,
 }: {
   tiles: Tile[];
   cycle: number | string;
   label: string;
+  stops?: ColorStops;
 }) {
   const rects = useMemo(
     () => squarify(tiles.map((t) => t.vsize), 0, 0, 100, 62.5),
@@ -135,7 +157,7 @@ function Mosaic({
             <div
               className="tile-drop m-[1px] h-[calc(100%-2px)] w-[calc(100%-2px)] rounded-[3px]"
               style={{
-                backgroundColor: feeColor(tile.feeRate, min, max),
+                backgroundColor: feeColor(tile.feeRate, min, max, stops),
                 animationDelay: `${Math.min(i * 9, 900)}ms`,
               }}
               title={tile.title}
@@ -147,10 +169,7 @@ function Mosaic({
         <span className="text-[10px] font-medium text-muted">low fee</span>
         <span
           className="h-2 w-16 rounded-full"
-          style={{
-            background:
-              "linear-gradient(90deg, rgb(36,70,138), rgb(61,180,255), rgb(196,164,106), rgb(239,91,91))",
-          }}
+          style={{ background: stopsGradient(stops) }}
         />
         <span className="text-[10px] font-medium text-muted">high fee</span>
       </div>
@@ -174,7 +193,7 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   );
 }
 
-function BlockView({ block }: { block: RecentBlock }) {
+function BlockView({ block, stops }: { block: RecentBlock; stops: ColorStops }) {
   const [txs, setTxs] = useState<BlockTx[] | null>(null);
   const [coinbase, setCoinbase] = useState<CoinbaseInfo | null>(null);
   const [error, setError] = useState(false);
@@ -231,6 +250,7 @@ function BlockView({ block }: { block: RecentBlock }) {
         <Mosaic
           tiles={tiles}
           cycle={block.hash}
+          stops={stops}
           label={`Treemap of the first ${tiles.length} transactions in block ${block.height}, sized by transaction weight and colored by fee rate`}
         />
       )}
@@ -282,6 +302,16 @@ function BlockView({ block }: { block: RecentBlock }) {
  */
 const TETRIS_COLS = 16;
 const TETRIS_ROWS = 10;
+
+// Faint motes drifting up through the well, bitfeed-style ambient float.
+// Module-level so the pattern is stable across renders.
+const DRIFT_DOTS = Array.from({ length: 16 }, (_, i) => ({
+  x: (i * 61 + 7) % 100,
+  size: 1.5 + ((i * 13) % 3),
+  peak: 0.05 + ((i * 29) % 10) / 120,
+  dur: 9 + ((i * 17) % 14),
+  delay: -((i * 23) % 22),
+}));
 
 type TetrisPiece = { x: number; y: number; w: number; h: number; rate: number };
 
@@ -395,10 +425,16 @@ function BuildingBlock({
   stats,
   projected,
   cycle,
+  stops,
+  paletteId,
+  onPaletteChange,
 }: {
   stats: MempoolStats;
   projected: ProjectedBlock | null;
   cycle: number;
+  stops: ColorStops;
+  paletteId: PaletteId;
+  onPaletteChange: (id: PaletteId) => void;
 }) {
   const pieces = useMemo(() => {
     const histogram = stats.feeHistogram ?? [];
@@ -472,8 +508,9 @@ function BuildingBlock({
         <div key={cycle} className="absolute inset-0">
           {pieces.map((p, i) => {
             // Each piece carries the slice of one continuous vertical gradient,
-            // sampled from a smooth function of height: neighbors share
-            // identical boundary colors, so no seams appear anywhere.
+            // sampled from a smooth function of height, plus a deliberate
+            // 1px inset hairline so every transaction reads as its own block.
+            // After landing, pieces keep a barely-there float (±1.5px).
             const topT = levelAt(p.y + p.h);
             const bottomT = levelAt(p.y);
             const topPct = ((TETRIS_ROWS - p.y - p.h) / TETRIS_ROWS) * 100;
@@ -488,18 +525,39 @@ function BuildingBlock({
                   width: `calc(${(p.w / TETRIS_COLS) * 100}% + 1px)`,
                   height: `calc(${hPct}% + 1px)`,
                   ["--fall" as string]: `${topPct + hPct + 4}cqh`,
-                  animationDelay: `${Math.min(i * 12, 1400)}ms`,
+                  animationDelay: `${Math.min(i * 18, 2600)}ms`,
                 }}
               >
                 <div
-                  className="h-full w-full"
+                  className="tetris-float h-full w-full"
                   style={{
-                    background: `linear-gradient(180deg, ${stopsColor(topT)} 0%, ${stopsColor(bottomT)} 100%)`,
+                    background: `linear-gradient(180deg, ${stopsColor(topT, stops)} 0%, ${stopsColor(bottomT, stops)} 100%)`,
+                    boxShadow: "inset 0 0 0 1px rgba(4,6,12,0.45)",
+                    animationDuration: `${6 + ((i * 37) % 50) / 10}s`,
+                    animationDelay: `${(-((i * 53) % 80) / 10).toFixed(1)}s`,
                   }}
                 />
               </div>
             );
           })}
+        </div>
+        <div className="pointer-events-none absolute inset-0" aria-hidden>
+          {DRIFT_DOTS.map((d, i) => (
+            <span
+              key={`drift-${i}`}
+              aria-hidden
+              className="drift-dot absolute rounded-full bg-cyan-100"
+              style={{
+                left: `${d.x}%`,
+                bottom: "-6px",
+                width: d.size,
+                height: d.size,
+                ["--peak" as string]: d.peak,
+                animationDuration: `${d.dur}s`,
+                animationDelay: `${d.delay}s`,
+              }}
+            />
+          ))}
         </div>
         <div
           className="pointer-events-none absolute inset-0 transition-opacity duration-1000"
@@ -533,23 +591,50 @@ function BuildingBlock({
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 text-[10px] text-white/55">
+      <div className="flex items-center gap-1.5 text-[10px] text-muted">
         <span>low fee</span>
         <span
           className="inline-block h-1.5 w-14 rounded-full"
-          style={{
-            background:
-              "linear-gradient(90deg,#1d4ed8,#38bdf8,#fbbf24,#f97316,#ef4444)",
-          }}
+          style={{ background: stopsGradient(stops) }}
         />
         <span>high fee</span>
+        <span
+          className="ml-auto flex items-center gap-1 rounded-full bg-fg/5 p-0.5"
+          role="group"
+          aria-label="Well color scheme"
+        >
+          {PALETTE_IDS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onPaletteChange(id)}
+              aria-pressed={paletteId === id}
+              className={cn(
+                "rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] transition-colors",
+                paletteId === id
+                  ? "bg-fg/10 text-fg shadow-sm"
+                  : "text-muted hover:text-fg",
+              )}
+            >
+              {PALETTE_LABELS[id]}
+            </button>
+          ))}
+        </span>
       </div>
       </div>
     </div>
   );
 }
 
-function NextBlockView() {
+function NextBlockView({
+  stops,
+  paletteId,
+  onPaletteChange,
+}: {
+  stops: ColorStops;
+  paletteId: PaletteId;
+  onPaletteChange: (id: PaletteId) => void;
+}) {
   const [proj, setProj] = useState<ProjectedBlock | null>(null);
   const [stats, setStats] = useState<MempoolStats | null>(null);
   const [cycle, setCycle] = useState(0);
@@ -606,7 +691,14 @@ function NextBlockView() {
       ) : !stats ? (
         <Skeleton className="aspect-[16/10] w-full rounded-lg" />
       ) : (
-        <BuildingBlock stats={stats} projected={proj} cycle={cycle} />
+        <BuildingBlock
+          stats={stats}
+          projected={proj}
+          cycle={cycle}
+          stops={stops}
+          paletteId={paletteId}
+          onPaletteChange={onPaletteChange}
+        />
       )}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -642,6 +734,24 @@ function NextBlockView() {
 export function MempoolSection() {
   const [blocks, setBlocks] = useState<RecentBlock[] | null>(null);
   const [tab, setTab] = useState("next");
+  const [paletteId, setPaletteId] = useState<PaletteId>(() => {
+    try {
+      return window.localStorage.getItem("antbit-mempool-palette") === "neon"
+        ? "neon"
+        : "ember";
+    } catch {
+      return "ember";
+    }
+  });
+  const handlePaletteChange = useCallback((id: PaletteId) => {
+    setPaletteId(id);
+    try {
+      window.localStorage.setItem("antbit-mempool-palette", id);
+    } catch {
+      /* storage unavailable — keep the in-memory choice */
+    }
+  }, []);
+  const stops = PALETTES[paletteId];
 
   useEffect(() => {
     let dead = false;
@@ -701,11 +811,15 @@ export function MempoolSection() {
                 : null}
             </TabsList>
             <TabsContent value="next">
-              <NextBlockView />
+              <NextBlockView
+                stops={stops}
+                paletteId={paletteId}
+                onPaletteChange={handlePaletteChange}
+              />
             </TabsContent>
             {(blocks ?? []).map((b) => (
               <TabsContent key={b.hash} value={b.hash}>
-                <BlockView block={b} />
+                <BlockView block={b} stops={stops} />
               </TabsContent>
             ))}
           </Tabs>

@@ -155,12 +155,53 @@
 }
 
 .tetris-piece {
-  animation: tetris-fall 0.32s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+  animation: tetris-fall 0.85s cubic-bezier(0.22, 0.7, 0.3, 1) both;
   will-change: transform, opacity;
 }
 
+/* Barely-there float once a piece has landed — bitfeed-style ambient drift. */
+.tetris-float {
+  animation: tetris-float 8s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes tetris-float {
+  from {
+    transform: translateY(-1.5px);
+  }
+  to {
+    transform: translateY(1.5px);
+  }
+}
+
+/* Faint motes rising through the well behind/above the stack. */
+.drift-dot {
+  animation: drift-up linear infinite;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+@keyframes drift-up {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  18% {
+    opacity: var(--peak, 0.1);
+  }
+  82% {
+    opacity: var(--peak, 0.1);
+  }
+  100% {
+    transform: translateY(-108cqh);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .tetris-piece {
+  .tetris-piece,
+  .tetris-float,
+  .drift-dot {
     animation: none;
   }
 }
