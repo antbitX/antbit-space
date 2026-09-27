@@ -109,9 +109,9 @@ function composeBrief(
     .map(
       (s) => `
       <tr>
-        <td style="padding:10px 0;border-top:1px solid #eee9da;">
-          <a href="${esc(s.url)}" style="color:#1c1a15;font-weight:600;text-decoration:none;font-size:14px;">${esc(s.title)}</a>
-          <div style="color:#8a8474;font-size:12px;margin-top:2px;">${esc(s.source)} · ${esc(s.section)}</div>
+        <td class="dm-row" style="padding:10px 0;border-top:1px solid #eee9da;">
+          <a href="${esc(s.url)}" class="dm-title" style="color:#1c1a15;font-weight:600;text-decoration:none;font-size:14px;">${esc(s.title)}</a>
+          <div class="dm-src" style="color:#8a8474;font-size:12px;margin-top:2px;">${esc(s.source)} · ${esc(s.section)}</div>
         </td>
       </tr>`,
     )
@@ -119,42 +119,60 @@ function composeBrief(
 
   const metalRows = [
     btcPrice
-      ? `<tr><td style="padding:8px 4px;border-bottom:1px solid #f4f1ea;">Bitcoin</td><td style="padding:8px 4px;border-bottom:1px solid #f4f1ea;text-align:right;">$${Math.round(btcPrice).toLocaleString("en-US")}</td></tr>`
+      ? `<tr><td class="dm-metal dm-rowb" style="padding:8px 4px;border-bottom:1px solid #f4f1ea;color:#1c1a15;">Bitcoin</td><td class="dm-metal dm-rowb" style="padding:8px 4px;border-bottom:1px solid #f4f1ea;text-align:right;color:#1c1a15;">$${Math.round(btcPrice).toLocaleString("en-US")}</td></tr>`
       : "",
     ...metals.map(
       (m) => `
       <tr>
-        <td style="padding:8px 4px;border-bottom:1px solid #f4f1ea;">${esc(m.name)}</td>
-        <td style="padding:8px 4px;border-bottom:1px solid #f4f1ea;text-align:right;">$${fmtUsd(m.price)}</td>
+        <td class="dm-metal dm-rowb" style="padding:8px 4px;border-bottom:1px solid #f4f1ea;color:#1c1a15;">${esc(m.name)}</td>
+        <td class="dm-metal dm-rowb" style="padding:8px 4px;border-bottom:1px solid #f4f1ea;text-align:right;color:#1c1a15;">$${fmtUsd(m.price)}</td>
       </tr>`,
     ),
   ].join("");
 
-  const html = `<!DOCTYPE html><html><body style="margin:0;background:#f4f1ea;font-family:-apple-system,'Segoe UI',sans-serif;color:#1c1a15;">
-  <div style="max-width:600px;margin:0 auto;background:#ffffff;">
-    <div style="background:#0b0b0c;color:#f3efe6;padding:26px 28px;">
-      <div style="font-weight:800;font-size:15px;">antbit <span style="color:#c4a46a;">desk</span></div>
-      <h1 style="font-size:24px;margin:12px 0 4px;">The Weekly Desk</h1>
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark"><title>The Weekly Desk</title><style>
+@media (prefers-color-scheme:dark){
+.dm-page{background:#161310 !important;}
+.dm-card{background:#211d15 !important;}
+.dm-head{background:#000000 !important;}
+.dm-brand{color:#f3efe6 !important;}
+.dm-h1{color:#f5f1e6 !important;}
+.dm-sect{color:#cfa856 !important;}
+.dm-title{color:#f2ecdc !important;}
+.dm-src{color:#a89e88 !important;}
+.dm-row{border-color:#3a352a !important;}
+.dm-rowb{border-color:#3a352a !important;}
+.dm-metal{color:#ece5d3 !important;}
+.dm-deep{background:#282419 !important;border-color:#3a352a !important;}
+.dm-deeptext{color:#cfc7b2 !important;}
+.dm-foot{background:#161310 !important;}
+.dm-footlink{color:#8ab4ff !important;}
+}
+</style></head><body class="dm-page" style="margin:0;background:#f4f1ea;font-family:-apple-system,'Segoe UI',sans-serif;color:#1c1a15;">
+  <div class="dm-card" style="max-width:600px;margin:0 auto;background:#ffffff;">
+    <div class="dm-head" style="background:#0b0b0c;padding:26px 28px;">
+      <div class="dm-brand" style="font-weight:800;font-size:15px;color:#f3efe6;">antbit <span style="color:#c4a46a;">desk</span></div>
+      <h1 class="dm-h1" style="font-size:24px;margin:12px 0 4px;color:#f3efe6;">The Weekly Desk</h1>
       <p style="color:#a39c8b;font-size:13px;margin:0;">${esc(date)} · 4-minute read</p>
     </div>
     <div style="padding:24px 28px;">
-      <p style="font-size:12px;font-weight:700;letter-spacing:1px;color:#9a7a3a;">TOP STORIES</p>
+      <p class="dm-sect" style="font-size:12px;font-weight:700;letter-spacing:1px;color:#9a7a3a;">TOP STORIES</p>
       <table style="width:100%;border-collapse:collapse;">${storyRows}</table>
-      <p style="font-size:12px;font-weight:700;letter-spacing:1px;color:#9a7a3a;margin-top:24px;">STORES OF VALUE</p>
+      <p class="dm-sect" style="font-size:12px;font-weight:700;letter-spacing:1px;color:#9a7a3a;margin-top:24px;">STORES OF VALUE</p>
       <table style="width:100%;border-collapse:collapse;font-size:14px;">${metalRows}</table>
       ${
         deepRead
-          ? `<p style="font-size:12px;font-weight:700;letter-spacing:1px;color:#9a7a3a;margin-top:24px;">DEEP READ</p>
-      <div style="background:#f8f6f0;border:1px solid #e9e5d8;border-radius:12px;padding:16px;">
-        <a href="${esc(deepRead.url)}" style="color:#1c1a15;font-weight:700;text-decoration:none;font-size:15px;">${esc(deepRead.title)}</a>
-        <p style="font-size:13px;color:#4d493f;">${esc(deepRead.summary || "")}</p>
+          ? `<p class="dm-sect" style="font-size:12px;font-weight:700;letter-spacing:1px;color:#9a7a3a;margin-top:24px;">DEEP READ</p>
+      <div class="dm-deep" style="background:#f8f6f0;border:1px solid #e9e5d8;border-radius:12px;padding:16px;">
+        <a href="${esc(deepRead.url)}" class="dm-title" style="color:#1c1a15;font-weight:700;text-decoration:none;font-size:15px;">${esc(deepRead.title)}</a>
+        <p class="dm-deeptext" style="font-size:13px;color:#4d493f;">${esc(deepRead.summary || "")}</p>
       </div>`
           : ""
       }
     </div>
-    <div style="background:#f4f1ea;padding:16px 28px;font-size:12px;color:#8a8474;">
+    <div class="dm-foot" style="background:#f4f1ea;padding:16px 28px;font-size:12px;color:#8a8474;">
       You're reading The Weekly Desk, a Saturday brief from antbit desk.<br>
-      <a href="https://antbit-desk.vercel.app/news" style="color:#0f6fdd;">antbit-desk.vercel.app/news</a>
+      <a href="https://antbit-desk.vercel.app/news" class="dm-footlink" style="color:#0f6fdd;">antbit-desk.vercel.app/news</a>
     </div>
   </div></body></html>`;
 
