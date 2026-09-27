@@ -1,5 +1,7 @@
-// Live block and mempool data from the public mempool.space API (no key needed).
-// All calls are client-side; the API sends `access-control-allow-origin: *`.
+// Live block and mempool data, proxied through this site's own /api/mempool
+// route (which forwards to the public mempool.space API, no key needed).
+// The proxy exists because some phones and privacy-focused browsers can't
+// reach mempool.space directly.
 
 export type RecentBlock = {
   hash: string;
@@ -45,7 +47,9 @@ export type RecentMempoolTx = {
   value: number;
 };
 
-const API = "https://mempool.space/api";
+const API = "/api/mempool";
+const p = (path: string, extra = "") =>
+  `${API}?path=${encodeURIComponent(path)}${extra}`;
 const SATS = 100_000_000;
 
 async function fetchJson<T>(url: string, timeoutMs = 12_000): Promise<T> {
@@ -73,7 +77,7 @@ type ApiBlock = {
 };
 
 export async function fetchRecentBlocks(limit = 6): Promise<RecentBlock[]> {
-  const blocks = await fetchJson<ApiBlock[]>(`${API}/blocks`);
+  const blocks = await fetchJson<ApiBlock[]>(p("/blocks"));
   return blocks.slice(0, limit).map((b) => ({
     hash: b.id,
     height: b.height,
@@ -124,7 +128,7 @@ export async function fetchBlockTxs(
   let coinbase: CoinbaseInfo | null = null;
 
   for (let page = 0; page < pages; page++) {
-    const batch = await fetchJson<ApiTx[]>(`${API}/block/${hash}/txs?start_index=${page * PAGE}`);
+    const batch = await fetchJson<ApiTx[]>(p(`/block/${hash}/txs`, `&start_index=${page * PAGE}`));
     if (page === 0 && batch.length > 0) {
       const cb = batch[0];
       if (cb?.vin?.[0]?.is_coinbase) {
@@ -209,7 +213,7 @@ export function blockSubsidySats(height: number): number {
 }
 
 export async function fetchProjectedBlocks(): Promise<ProjectedBlock[]> {
-  const blocks = await fetchJson<ProjectedBlock[]>(`${API}/v1/fees/mempool-blocks`);
+  const blocks = await fetchJson<ProjectedBlock[]>(p("/v1/fees/mempool-blocks"));
   return blocks;
 }
 
@@ -220,7 +224,7 @@ export async function fetchMempoolStats(): Promise<MempoolStats> {
     vsize: number;
     total_fee: number;
     fee_histogram: Array<[number, number]>;
-  }>(`${API}/mempool`);
+  }>(p("/mempool"));
   return {
     count: raw.count ?? 0,
     vsize: raw.vsize ?? 0,
@@ -230,7 +234,7 @@ export async function fetchMempoolStats(): Promise<MempoolStats> {
 }
 
 export async function fetchRecentMempoolTxs(): Promise<RecentMempoolTx[]> {
-  return fetchJson<RecentMempoolTx[]>(`${API}/mempool/recent`);
+  return fetchJson<RecentMempoolTx[]>(p("/mempool/recent"));
 }
 
 // ---------------------------------------------------------------------------

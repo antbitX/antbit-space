@@ -601,7 +601,7 @@ function NextBlockView() {
 
       {error && !stats ? (
         <div className="grid aspect-[16/10] place-items-center rounded-lg bg-bg/70">
-          <p className="text-sm text-muted">Couldn't reach mempool.space. Retrying…</p>
+          <p className="text-sm text-muted">Couldn't reach the block feed. Retrying…</p>
         </div>
       ) : !stats ? (
         <Skeleton className="aspect-[16/10] w-full rounded-lg" />

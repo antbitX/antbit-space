@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as NewsRouteImport } from './routes/news'
+import { Route as ApiMempoolRouteImport } from './routes/api/mempool'
 import { Route as ApiWeeklyBriefRouteImport } from './routes/api/weekly-brief'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -22,6 +23,11 @@ const IndexRoute = IndexRouteImport.update({
 const NewsRoute = NewsRouteImport.update({
   id: '/news',
   path: '/news',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMempoolRoute = ApiMempoolRouteImport.update({
+  id: '/api/mempool',
+  path: '/api/mempool',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWeeklyBriefRoute = ApiWeeklyBriefRouteImport.update({
@@ -38,12 +44,14 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/news': typeof NewsRoute
+  '/api/mempool': typeof ApiMempoolRoute
   '/api/weekly-brief': typeof ApiWeeklyBriefRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/news': typeof NewsRoute
+  '/api/mempool': typeof ApiMempoolRoute
   '/api/weekly-brief': typeof ApiWeeklyBriefRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -51,20 +59,29 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/news': typeof NewsRoute
+  '/api/mempool': typeof ApiMempoolRoute
   '/api/weekly-brief': typeof ApiWeeklyBriefRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/news' | '/api/weekly-brief' | '/api/auth/$'
+  fullPaths:
+    '/' | '/news' | '/api/mempool' | '/api/weekly-brief' | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/news' | '/api/weekly-brief' | '/api/auth/$'
-  id: '__root__' | '/' | '/news' | '/api/weekly-brief' | '/api/auth/$'
+  to: '/' | '/news' | '/api/mempool' | '/api/weekly-brief' | '/api/auth/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/news'
+    | '/api/mempool'
+    | '/api/weekly-brief'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   NewsRoute: typeof NewsRoute
+  ApiMempoolRoute: typeof ApiMempoolRoute
   ApiWeeklyBriefRoute: typeof ApiWeeklyBriefRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -83,6 +100,13 @@ declare module '@tanstack/react-router' {
       path: '/news'
       fullPath: '/news'
       preLoaderRoute: typeof NewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mempool': {
+      id: '/api/mempool'
+      path: '/api/mempool'
+      fullPath: '/api/mempool'
+      preLoaderRoute: typeof ApiMempoolRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/weekly-brief': {
@@ -105,6 +129,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   NewsRoute: NewsRoute,
+  ApiMempoolRoute: ApiMempoolRoute,
   ApiWeeklyBriefRoute: ApiWeeklyBriefRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
