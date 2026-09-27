@@ -1,6 +1,7 @@
 import { AboutPanel } from "@/components/about-panel";
 import { InstallPanel } from "@/components/install-panel";
 import { MarketSection } from "@/components/market-section";
+import { MempoolSection } from "@/components/mempool-section";
 import { MobileNewsPreview } from "@/components/mobile-news-preview";
 import { ResourceColumns } from "@/components/resource-columns";
 import { SiteShell } from "@/components/site-shell";
@@ -52,6 +53,9 @@ export function Dashboard({ initial }: { initial: BitcoinSnapshot | null }) {
       */}
       <div className="order-6 md:order-none">
         <AboutPanel />
+      </div>
+      <div className="md:order-none">
+        <MempoolSection />
       </div>
       <div className="order-1 md:order-none">
         <MarketSection snapshot={snapshot} />

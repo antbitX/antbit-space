@@ -3,6 +3,7 @@ import { ThemeToggle } from "@/components/theme";
 
 const SECTION_NAV = [
   { href: "/#about", label: "About" },
+  { href: "/#mempool", label: "Mempool" },
   { href: "/#markets", label: "Markets" },
   { href: "/#network", label: "Network" },
   { href: "/#install", label: "Install" },

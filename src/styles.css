@@ -107,3 +107,60 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Mempool mosaic: transactions fall into place as the block builds. */
+@keyframes tile-drop {
+  from {
+    transform: translateY(-14px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.tile-drop {
+  animation: tile-drop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Mempool "building" visual: Tetris-like pieces stack into the block. */
+.tetris-well {
+  container-type: size;
+}
+
+.tetris-grid {
+  background-image:
+    linear-gradient(rgba(148, 184, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 184, 255, 0.07) 1px, transparent 1px);
+  background-size: 6.25% 10%;
+}
+
+@keyframes tetris-fall {
+  0% {
+    transform: translateY(calc(var(--fall) * -1));
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  82% {
+    transform: translateY(1cqh);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.tetris-piece {
+  animation: tetris-fall 0.32s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tetris-piece {
+    animation: none;
+  }
+}

@@ -28,6 +28,8 @@ const CATEGORY_FEEDS: { category: string; blurb: string; feeds: { source: string
       { source: "Jameson Lopp", url: "https://blog.lopp.net/rss/" },
       { source: "Delving Bitcoin", url: "https://delvingbitcoin.org/latest.rss" },
       { source: "Bitcoin Core", url: "https://bitcoincore.org/en/rss.xml" },
+      { source: "Bitcoin Magazine", url: "https://bitcoinmagazine.com/feed" },
+      { source: "Blockstream Blog", url: "https://blog.blockstream.com/rss/" },
     ],
   },
   {
@@ -36,6 +38,8 @@ const CATEGORY_FEEDS: { category: string; blurb: string; feeds: { source: string
     feeds: [
       { source: "Federal Reserve", url: "https://www.federalreserve.gov/feeds/press_all.xml" },
       { source: "FRED Blog", url: "https://fredblog.stlouisfed.org/feed/" },
+      { source: "Calculated Risk", url: "https://www.calculatedriskblog.com/feeds/posts/default" },
+      { source: "Wolf Street", url: "https://wolfstreet.com/feed/" },
     ],
   },
   {
@@ -52,12 +56,18 @@ const CATEGORY_FEEDS: { category: string; blurb: string; feeds: { source: string
     feeds: [
       { source: "MIT Technology Review", url: "https://www.technologyreview.com/topic/artificial-intelligence/feed/" },
       { source: "The Decoder", url: "https://www.the-decoder.com/feed/" },
+      { source: "Hugging Face Blog", url: "https://huggingface.co/blog/feed.xml" },
+      { source: "Import AI", url: "https://importai.substack.com/feed" },
     ],
   },
 ];
 
 const PER_CATEGORY = 8;
 const CUTOFF_DAYS = 120;
+// Source diversity: no single feed dominates the visible set. After the
+// first pass, any unfilled slots are backfilled from the ranked list so
+// categories with fewer feeds still show a full set.
+const MAX_PER_SOURCE = 2;
 // How many items each feed contributes to the ranking pool (more than we show,
 // so the ranker has real choices).
 const PER_FEED_POOL = 12;
@@ -171,7 +181,26 @@ function rankHeadlines(category: string, headlines: Headline[]): Headline[] {
     })
     .map((item) => ({ item, score: scoreHeadline(item, category) }));
   scored.sort((a, b) => b.score - a.score || b.item.publishedAt - a.item.publishedAt);
-  return scored.slice(0, PER_CATEGORY).map((s) => s.item);
+
+  // Diversity pass: cap headlines per source so the same feeds don't crowd
+  // out the rest, then backfill any remaining slots from the ranked list.
+  const picked: Headline[] = [];
+  const perSource = new Map<string, number>();
+  for (const { item } of scored) {
+    if (picked.length >= PER_CATEGORY) break;
+    const count = perSource.get(item.source) ?? 0;
+    if (count >= MAX_PER_SOURCE) continue;
+    perSource.set(item.source, count + 1);
+    picked.push(item);
+  }
+  if (picked.length < PER_CATEGORY) {
+    const pickedIds = new Set(picked.map((p) => p.id));
+    for (const { item } of scored) {
+      if (picked.length >= PER_CATEGORY) break;
+      if (!pickedIds.has(item.id)) picked.push(item);
+    }
+  }
+  return picked;
 }
 
 function decode(value: string): string {

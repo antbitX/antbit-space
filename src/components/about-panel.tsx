@@ -40,7 +40,7 @@ export function AboutPanel() {
               bitcoin only
             </p>
             <p className="max-w-xl text-sm leading-relaxed text-muted">
-              Bitcoin-only desk. Watching price and issuance.
+              Bitcoin-only desk that watches price and issuance.
             </p>
           </div>
         </div>

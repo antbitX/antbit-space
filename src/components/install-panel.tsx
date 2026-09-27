@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from "react";
+import { ChartLine, Globe, Home, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isIos, isStandalone, registerServiceWorker, type InstallPrompt } from "@/lib/pwa";
+
+const PREVIEW_TABS = [
+  { label: "Home", icon: Home },
+  { label: "Markets", icon: ChartLine },
+  { label: "News", icon: Globe },
+  { label: "More", icon: LayoutGrid },
+];
 
 export function InstallPanel() {
   const [ios] = useState(isIos);
@@ -88,7 +96,7 @@ export function InstallPanel() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-5">
-              <div className="w-32 shrink-0 rounded-[1.6rem] border border-border bg-black p-1.5 shadow-[var(--shadow-border)]">
+              <div className="w-36 shrink-0 rounded-[1.6rem] border border-border bg-black p-1.5 shadow-[var(--shadow-border)]">
                 <div className="flex h-64 flex-col overflow-hidden rounded-[1.2rem] bg-bg">
                   <div className="flex items-center justify-between px-3 pt-2.5">
                     <p className="text-[10px] font-extrabold tracking-tight text-fg">
@@ -123,10 +131,13 @@ export function InstallPanel() {
                     ))}
                   </div>
                   <div className="mt-auto grid grid-cols-4 border-t border-border px-1 pb-2 pt-1.5">
-                    {["Home", "Markets", "News", "More"].map((label) => (
-                      <p key={label} className="text-center text-[8px] text-muted">
-                        {label}
-                      </p>
+                    {PREVIEW_TABS.map(({ label, icon: Icon }) => (
+                      <div key={label} className="flex flex-col items-center gap-0.5">
+                        <Icon className="size-3 text-muted" strokeWidth={1.75} />
+                        <p className="text-center text-[7px] font-medium tracking-tight text-muted">
+                          {label}
+                        </p>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -134,8 +145,7 @@ export function InstallPanel() {
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-fg">The desk in your pocket</p>
                 <p className="text-sm leading-relaxed text-muted">
-                  Full-screen app, no browser chrome — price, charts, and headlines from your Home
-                  Screen.
+                  Full-screen app — price, charts, and headlines from your home screen.
                 </p>
               </div>
             </div>
