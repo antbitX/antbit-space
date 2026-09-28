@@ -1,4 +1,4 @@
-import { ArrowUpRight, Cpu, FileText, LayoutDashboard, Wallet, Waves } from "lucide-react";
+import { ArrowUpRight, Cpu, FileText, LayoutDashboard, Server, Wallet, Waves } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const RESOURCES = [
@@ -36,6 +36,13 @@ const RESOURCES = [
     blurb: "Satoshi's 2008 paper. Nine pages that started everything.",
     href: "https://bitcoin.org/bitcoin.pdf",
     icon: FileText,
+  },
+  {
+    title: "Run a node",
+    name: "Umbrel",
+    blurb: "Your own Bitcoin node in a box. Verify, don't trust.",
+    href: "https://umbrel.com/",
+    icon: Server,
   },
 ];
 

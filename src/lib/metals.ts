@@ -11,10 +11,10 @@ export type StoreOfValue = {
 };
 
 const SYMBOLS = [
+  { yahoo: "%5EGSPC", symbol: "SPX", name: "S&P 500", unit: "points" },
   { yahoo: "GC=F", symbol: "XAU", name: "Gold", unit: "USD / oz" },
+  { yahoo: "CL=F", symbol: "WTI", name: "WTI Crude", unit: "USD / bbl" },
   { yahoo: "SI=F", symbol: "XAG", name: "Silver", unit: "USD / oz" },
-  { yahoo: "CL=F", symbol: "WTI", name: "Crude Oil", unit: "USD / bbl" },
-  { yahoo: "PL=F", symbol: "XPT", name: "Platinum", unit: "USD / oz" },
 ];
 
 type YahooChart = {
@@ -93,7 +93,7 @@ export const getStoresOfValue = createServerFn({ method: "GET" }).handler(
         SYMBOLS.map(async (meta) => {
           const row = await fetchYahoo(meta.yahoo);
           if (row) return { ...row, symbol: meta.symbol, name: meta.name, unit: meta.unit };
-          if (meta.symbol === "XAU" || meta.symbol === "XAG" || meta.symbol === "XPT") {
+          if (meta.symbol === "XAU" || meta.symbol === "XAG") {
             const spot = await fetchSpotFallback(meta.symbol);
             if (spot)
               return {

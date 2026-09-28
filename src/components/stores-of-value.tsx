@@ -53,7 +53,7 @@ export function StoresOfValue() {
         Stores of value
       </h2>
       <p className="mt-1 text-sm text-muted">
-        Gold, silver, platinum and crude, next to your bitcoin.
+        The S&P 500, gold, crude and silver, next to your bitcoin.
       </p>
 
       <div className="mt-4 flex snap-x gap-3 overflow-x-auto pb-1 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-4">

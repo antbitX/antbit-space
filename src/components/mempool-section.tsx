@@ -1,5 +1,5 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Boxes } from "lucide-react";
+import { ArrowUpRight, Boxes, Check, Copy, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,7 +49,158 @@ class MempoolErrorBoundary extends Component<{ children: ReactNode }, { failed: 
   }
 }
 
-type Tile = { vsize: number; feeRate: number; title: string };
+type Tile = {
+  vsize: number;
+  feeRate: number;
+  title: string;
+  txid?: string;
+  fee?: number;
+  index?: number;
+};
+
+type TxSelection =
+  | {
+      kind: "tx";
+      txid: string;
+      fee: number;
+      vsize: number;
+      feeRate: number;
+      position: string;
+      blockHeight: number;
+    }
+  | { kind: "band"; feeRate: number; vsize: number };
+
+/** Click-through details for a mined-block transaction or a building-well fee band. */
+function TxDetailDialog({
+  selection,
+  onClose,
+}: {
+  selection: TxSelection | null;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!selection) return;
+    setCopied(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [selection, onClose]);
+
+  if (!selection) return null;
+
+  const copyTxid = async () => {
+    if (selection.kind !== "tx") return;
+    try {
+      await navigator.clipboard.writeText(selection.txid);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={selection.kind === "tx" ? "Transaction details" : "Fee band details"}
+    >
+      <button
+        type="button"
+        aria-label="Close details"
+        onClick={onClose}
+        className="absolute inset-0 cursor-default bg-black/60 backdrop-blur-sm"
+      />
+      <div className="relative w-full max-w-sm rounded-t-2xl bg-surface p-5 shadow-2xl sm:rounded-2xl">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">
+            {selection.kind === "tx"
+              ? `Transaction · Block ${formatNumber(selection.blockHeight)}`
+              : "Fee band · Building"}
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close details"
+            className="rounded-full p-1 text-muted transition-colors hover:text-fg"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        {selection.kind === "tx" ? (
+          <div className="mt-3 space-y-4">
+            <div className="flex items-center gap-2 rounded-lg bg-bg/70 px-3 py-2.5">
+              <p
+                className="min-w-0 flex-1 truncate font-mono text-xs text-fg"
+                title={selection.txid}
+              >
+                {selection.txid.slice(0, 14)}…{selection.txid.slice(-10)}
+              </p>
+              <button
+                type="button"
+                onClick={copyTxid}
+                aria-label="Copy full transaction id"
+                className="flex shrink-0 items-center gap-1 text-xs font-medium text-accent hover:underline"
+              >
+                {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Stat
+                label="Fee"
+                value={`${formatNumber(selection.fee)} sats`}
+                sub={formatBtcFromSats(selection.fee)}
+              />
+              <Stat
+                label="Size"
+                value={`${formatNumber(selection.vsize)} vB`}
+                sub={`${(selection.vsize / 1000).toFixed(2)} kB`}
+              />
+              <Stat label="Fee rate" value={`${selection.feeRate.toFixed(1)} sat/vB`} />
+              <Stat label="Position" value={selection.position} sub="in block order" />
+            </div>
+            <a
+              href={`https://mempool.space/tx/${selection.txid}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
+            >
+              View on mempool.space <ArrowUpRight className="size-4" />
+            </a>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-4">
+            <p className="text-sm leading-relaxed text-muted">
+              Projected-block pieces are grouped into fee bands from the live fee
+              histogram — the next block's transaction list isn't published, so
+              bands are the finest detail available while building.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <Stat label="Fee rate" value={`≈${selection.feeRate.toFixed(1)} sat/vB`} />
+              <Stat
+                label="Weight"
+                value={`≈${(selection.vsize / 1000).toFixed(1)} kB`}
+                sub="of block vsize"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // Fee-rate → color, log-scaled across the visible tiles. Two schemes:
 // "ember" follows the site palette (deep blue → accent → coin gold → red),
@@ -118,11 +269,13 @@ function Mosaic({
   cycle,
   label,
   stops = PALETTES.ember,
+  onSelect,
 }: {
   tiles: Tile[];
   cycle: number | string;
   label: string;
   stops?: ColorStops;
+  onSelect?: (tile: Tile) => void;
 }) {
   const rects = useMemo(
     () => squarify(tiles.map((t) => t.vsize), 0, 0, 100, 62.5),
@@ -155,12 +308,29 @@ function Mosaic({
             }}
           >
             <div
-              className="tile-drop m-[1px] h-[calc(100%-2px)] w-[calc(100%-2px)] rounded-[3px]"
+              className={cn(
+                "tile-drop m-[1px] h-[calc(100%-2px)] w-[calc(100%-2px)] rounded-[3px]",
+                onSelect && "cursor-pointer",
+              )}
               style={{
                 backgroundColor: feeColor(tile.feeRate, min, max, stops),
                 animationDelay: `${Math.min(i * 9, 900)}ms`,
               }}
-              title={tile.title}
+              title={onSelect ? `${tile.title} — click for details` : tile.title}
+              role={onSelect ? "button" : undefined}
+              tabIndex={onSelect ? 0 : undefined}
+              aria-label={onSelect ? `${tile.title} — show transaction details` : undefined}
+              onClick={onSelect ? () => onSelect(tile) : undefined}
+              onKeyDown={
+                onSelect
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onSelect(tile);
+                      }
+                    }
+                  : undefined
+              }
             />
           </div>
         );
@@ -197,6 +367,7 @@ function BlockView({ block, stops }: { block: RecentBlock; stops: ColorStops }) 
   const [txs, setTxs] = useState<BlockTx[] | null>(null);
   const [coinbase, setCoinbase] = useState<CoinbaseInfo | null>(null);
   const [error, setError] = useState(false);
+  const [selected, setSelected] = useState<TxSelection | null>(null);
 
   useEffect(() => {
     let dead = false;
@@ -218,9 +389,12 @@ function BlockView({ block, stops }: { block: RecentBlock; stops: ColorStops }) 
 
   const tiles: Tile[] = useMemo(
     () =>
-      (txs ?? []).map((t) => ({
+      (txs ?? []).map((t, idx) => ({
         vsize: t.vsize,
         feeRate: t.feeRate,
+        txid: t.txid,
+        fee: t.fee,
+        index: idx,
         title: `${t.txid.slice(0, 12)}… · ${t.feeRate.toFixed(1)} sat/vB · ${(t.vsize / 1000).toFixed(1)} kB`,
       })),
     [txs],
@@ -252,8 +426,21 @@ function BlockView({ block, stops }: { block: RecentBlock; stops: ColorStops }) 
           cycle={block.hash}
           stops={stops}
           label={`Treemap of the first ${tiles.length} transactions in block ${block.height}, sized by transaction weight and colored by fee rate`}
+          onSelect={(tile) => {
+            if (tile.txid == null) return;
+            setSelected({
+              kind: "tx",
+              txid: tile.txid,
+              fee: tile.fee ?? 0,
+              vsize: tile.vsize,
+              feeRate: tile.feeRate,
+              position: `#${(tile.index ?? 0) + 1} of ${tiles.length}`,
+              blockHeight: block.height,
+            });
+          }}
         />
       )}
+      <TxDetailDialog selection={selected} onClose={() => setSelected(null)} />
       {txs && block.txCount > txs.length ? (
         <p className="text-xs text-subtle">
           Showing the first {txs.length} of {formatNumber(block.txCount)} transactions, in block
@@ -297,8 +484,10 @@ function BlockView({ block, stops }: { block: RecentBlock; stops: ColorStops }) 
 /**
  * The "building" visual: a Tetris-like well that stacks the next block.
  * Waiting transactions become blocky pieces sized by vsize and colored by fee
- * rate; they drop in one after another, highest fee first — the way a miner
- * would take them. The cascade replays each time fresh mempool data arrives.
+ * rate; they rain in one by one over a nominal ten-minute block interval,
+ * highest fee first — the way a miner would take them. Fresh mempool data
+ * updates the template in place without restarting the rain; a newly mined
+ * block starts the next build from an empty well.
  */
 const TETRIS_COLS = 16;
 const TETRIS_ROWS = 10;
@@ -424,22 +613,61 @@ function stackPieces(
 function BuildingBlock({
   stats,
   projected,
-  cycle,
+  tipHeight,
   stops,
   paletteId,
   onPaletteChange,
 }: {
   stats: MempoolStats;
   projected: ProjectedBlock | null;
-  cycle: number;
+  tipHeight: number | null;
   stops: ColorStops;
   paletteId: PaletteId;
   onPaletteChange: (id: PaletteId) => void;
 }) {
-  const pieces = useMemo(() => {
+  // Pieces rain in one by one as the block is built, instead of cascading
+  // all at once: each piece is revealed on a schedule spread over a nominal
+  // ten-minute block interval. A newly mined block restarts from an empty well.
+  const REVEAL_WINDOW_MS = 10 * 60 * 1000;
+  const [sessionStart, setSessionStart] = useState<number | null>(null);
+  const [now, setNow] = useState<number | null>(null);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [band, setBand] = useState<{ feeRate: number; vsize: number } | null>(null);
+  const prevTip = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (tipHeight == null) return;
+    if (prevTip.current != null && tipHeight > prevTip.current) {
+      setSessionStart(Date.now());
+    }
+    prevTip.current = tipHeight;
+  }, [tipHeight]);
+
+  useEffect(() => {
+    const t = Date.now();
+    // Seed the session a few minutes in the past so the well is already
+    // partially built on first paint, then keeps raining one piece at a time.
+    // (Set in an effect so server and client render the same initial HTML.)
+    setSessionStart(t - 3 * 60 * 1000);
+    setNow(t);
+    const id = window.setInterval(() => {
+      if (!document.hidden) setNow(Date.now());
+    }, 2500);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduceMotion(mq.matches);
+    const fn = (e: MediaQueryListEvent) => setReduceMotion(e.matches);
+    mq.addEventListener("change", fn);
+    return () => mq.removeEventListener("change", fn);
+  }, []);
+
+  const { pieces, cellVsize } = useMemo(() => {
     const histogram = stats.feeHistogram ?? [];
     const total = histogram.reduce((a, [, v]) => a + v, 0);
-    if (total <= 0) return [];
+    if (total <= 0) return { pieces: [] as TetrisPiece[], cellVsize: 0 };
     const cellVsize = total / (TETRIS_COLS * TETRIS_ROWS);
     const chunks: Array<{ w: number; h: number; rate: number }> = [];
     // Highest fee first — those pieces land at the bottom, like a miner
@@ -452,8 +680,20 @@ function BuildingBlock({
         chunks.push({ w, h, rate });
       }
     });
-    return stackPieces(chunks);
+    return { pieces: stackPieces(chunks), cellVsize };
   }, [stats]);
+
+  // Pieces are ordered high-fee first, so the reveal fills the well
+  // bottom-up — the way a miner takes them.
+  const perPieceMs = REVEAL_WINDOW_MS / Math.max(pieces.length, 1);
+  const revealedCount =
+    reduceMotion || sessionStart == null || now == null
+      ? pieces.length
+      : Math.min(
+          pieces.length,
+          Math.max(0, Math.floor((now - sessionStart) / perPieceMs)),
+        );
+  const visible = pieces.slice(0, revealedCount);
 
   const fill = projected ? Math.min(1, projected.blockVSize / 1_000_000) : 0;
   const minRate = pieces.length ? Math.min(...pieces.map((p) => p.rate)) : 0;
@@ -505,27 +745,38 @@ function BuildingBlock({
       >
         <div className="tetris-grid absolute inset-0" aria-hidden />
 
-        <div key={cycle} className="absolute inset-0">
-          {pieces.map((p, i) => {
+        <div className="absolute inset-0">
+          {visible.map((p, i) => {
             // Each piece carries the slice of one continuous vertical gradient,
             // sampled from a smooth function of height, plus a deliberate
             // 1px inset hairline so every transaction reads as its own block.
-            // After landing, pieces keep a barely-there float (±1.5px).
+            // Pieces mount exactly when revealed, so each one falls into its
+            // slot individually; after landing they keep a barely-there float.
             const topT = levelAt(p.y + p.h);
             const bottomT = levelAt(p.y);
             const topPct = ((TETRIS_ROWS - p.y - p.h) / TETRIS_ROWS) * 100;
             const hPct = (p.h / TETRIS_ROWS) * 100;
+            const showBand = () => setBand({ feeRate: p.rate, vsize: p.w * p.h * cellVsize });
             return (
               <div
                 key={i}
-                className="tetris-piece absolute"
+                role="button"
+                tabIndex={0}
+                aria-label={`Fee band near ${p.rate.toFixed(1)} sat/vB — show details`}
+                onClick={showBand}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    showBand();
+                  }
+                }}
+                className="tetris-piece absolute cursor-pointer"
                 style={{
                   left: `${(p.x / TETRIS_COLS) * 100}%`,
                   top: `${topPct}%`,
                   width: `calc(${(p.w / TETRIS_COLS) * 100}% + 1px)`,
                   height: `calc(${hPct}% + 1px)`,
                   ["--fall" as string]: `${topPct + hPct + 4}cqh`,
-                  animationDelay: `${Math.min(i * 18, 2600)}ms`,
                 }}
               >
                 <div
@@ -621,6 +872,12 @@ function BuildingBlock({
           ))}
         </span>
       </div>
+      <TxDetailDialog
+        selection={
+          band ? { kind: "band", feeRate: band.feeRate, vsize: band.vsize } : null
+        }
+        onClose={() => setBand(null)}
+      />
       </div>
     </div>
   );
@@ -637,24 +894,34 @@ function NextBlockView({
 }) {
   const [proj, setProj] = useState<ProjectedBlock | null>(null);
   const [stats, setStats] = useState<MempoolStats | null>(null);
-  const [cycle, setCycle] = useState(0);
+  const [tipHeight, setTipHeight] = useState<number | null>(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     let dead = false;
     const load = () => {
       if (document.hidden) return;
-      Promise.all([fetchProjectedBlocks(), fetchMempoolStats()])
-        .then(([p, s]) => {
+      // allSettled so one hiccuping endpoint doesn't take down the rest —
+      // the well can render from stats alone while projected blocks recover.
+      Promise.allSettled([fetchProjectedBlocks(), fetchMempoolStats(), fetchRecentBlocks(1)]).then(
+        ([pRes, sRes, rbRes]) => {
           if (dead) return;
-          setProj(p[0] ?? null);
-          setStats(s);
-          setError(false);
-          setCycle((c) => c + 1);
-        })
-        .catch(() => {
-          if (!dead) setError(true);
-        });
+          let ok = false;
+          if (pRes.status === "fulfilled") {
+            setProj(pRes.value[0] ?? null);
+            ok = true;
+          }
+          if (sRes.status === "fulfilled") {
+            setStats(sRes.value);
+            ok = true;
+          }
+          if (rbRes.status === "fulfilled") {
+            setTipHeight(rbRes.value[0]?.height ?? null);
+            ok = true;
+          }
+          setError(!ok);
+        },
+      );
     };
     load();
     const id = window.setInterval(load, 30_000);
@@ -694,7 +961,7 @@ function NextBlockView({
         <BuildingBlock
           stats={stats}
           projected={proj}
-          cycle={cycle}
+          tipHeight={tipHeight}
           stops={stops}
           paletteId={paletteId}
           onPaletteChange={onPaletteChange}
