@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
-import { Area, AreaChart, ResponsiveContainer } from "recharts";
+import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
 import { getStoresOfValue, type StoreOfValue } from "@/lib/metals";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function Spark({ data, up, id }: { data: number[]; up: boolean; id: string }) {
   const stroke = up ? "var(--color-up)" : "var(--color-down)";
   const points = data.map((price, i) => ({ i, price }));
+  // Lock the Y domain to the data's own range (plus a little headroom).
+  // Recharts defaults the axis to start at 0, which flattens small
+  // relative moves into a straight line.
+  const lo = Math.min(...data);
+  const hi = Math.max(...data);
+  const pad = (hi - lo) * 0.15 || Math.abs(lo) * 0.01 || 1;
   return (
     <div className="mt-2 h-16 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -16,6 +22,7 @@ function Spark({ data, up, id }: { data: number[]; up: boolean; id: string }) {
               <stop offset="100%" stopColor={stroke} stopOpacity={0} />
             </linearGradient>
           </defs>
+          <YAxis hide domain={[lo - pad, hi + pad]} />
           <Area
             type="monotone"
             dataKey="price"
