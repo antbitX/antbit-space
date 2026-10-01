@@ -1,4 +1,4 @@
-import { OnThisDay } from "@/components/on-this-day";
+import { LatestPosts } from "@/components/latest-posts";
 import { XIcon } from "@/components/x-icon";
 
 export function AboutPanel() {
@@ -46,7 +46,7 @@ export function AboutPanel() {
         </div>
       </article>
 
-        <OnThisDay />
+        <LatestPosts />
       </div>
     </section>
   );
